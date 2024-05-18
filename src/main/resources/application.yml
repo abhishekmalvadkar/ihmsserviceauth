@@ -1,0 +1,12 @@
+spring:
+  application:
+    name: ihmsserviceauth
+  jpa:
+    open-in-view: false
+
+server:
+  port: 9092
+
+ihms:
+  jwtSecretKey: ${JWT_SECRET_KEY}
+  jwtExpiryTimeInMs: ${JWT_EXPIRY_TIME_IN_MS}
