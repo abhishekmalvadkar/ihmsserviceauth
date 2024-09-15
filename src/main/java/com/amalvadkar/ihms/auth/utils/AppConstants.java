@@ -13,6 +13,7 @@ public class AppConstants {
     public static final String REQUEST_HEADER_AUTH_PROVIDER = "Auth-Provider";
     public static final String REQUEST_HEADER_TOKEN = "Token";
     public static final String REQUEST_HEADER_DEVICE = "Device";
+    public static final String TRAINING_VIDEO_DROPDOWN_OPTIONS = "trainingVideoDropdownOptions";
 
     private AppConstants(){
         throw new IllegalStateException("You can't create object for AppConstants utility class");
