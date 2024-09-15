@@ -1,9 +1,14 @@
 package com.amalvadkar.ihms.auth.services;
 
+import com.amalvadkar.ihms.auth.MenuNode;
 import com.amalvadkar.ihms.auth.helpers.JwtTokenHelper;
 import com.amalvadkar.ihms.auth.models.dto.JwtTokenCreateDto;
+import com.amalvadkar.ihms.auth.utils.MenuTreeBuilder;
+import com.amalvadkar.ihms.common.entities.MenuEntity;
+import com.amalvadkar.ihms.common.entities.RoleMenuEntity;
 import com.amalvadkar.ihms.common.entities.UserEntity;
 import com.amalvadkar.ihms.common.models.response.CustomResModel;
+import com.amalvadkar.ihms.common.repositories.RoleMenuRepository;
 import com.amalvadkar.ihms.common.repositories.UserRepository;
 import com.amalvadkar.ihms.common.exceptions.AppException;
 import com.amalvadkar.ihms.auth.helpers.IdTokenHelper;
@@ -16,6 +21,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
+import java.util.List;
+import java.util.stream.Collectors;
 
 import static com.amalvadkar.ihms.auth.utils.AppConstants.ERROR_MSG_EMAIL_ID_MISSING_IN_SYSTEM;
 import static com.amalvadkar.ihms.auth.utils.AppConstants.LOGGED_IN_SUCCESSFULLY_RESPONSE_MSG;
@@ -33,6 +40,7 @@ public class AuthService {
     private final IdTokenHelper idTokenHelper;
     private final UserRepository userRepo;
     private final JwtTokenHelper jwtTokenHelper;
+    private final RoleMenuRepository roleMenuRepository;
 
     @Transactional
     public ResponseEntity<CustomResModel> signIn(String authProvider, String token, String device) {
@@ -67,6 +75,18 @@ public class AuthService {
             signInResModel.setLastLoginTime(dbUserEntity.getLastLoginTime());
             dbUserEntity.setLastLoginTime(Instant.now());
         }
+
+        List<RoleMenuEntity> roleMenuEntityList = roleMenuRepository
+                .findRoleMenuBasedByRoleId(dbUserEntity.getRoleEntity().getId());
+
+        List<MenuEntity> menuEntityList = roleMenuEntityList.stream()
+                .map(RoleMenuEntity::getMenuEntity)
+                .collect(Collectors.toList());
+
+        List<MenuNode> menuNodes = MenuTreeBuilder.buildMenuTree(menuEntityList);
+
+        signInResModel.setMenus(menuNodes);
+
         dbUserEntity.setName(authTokenModel.name());
         dbUserEntity.setPhotoUrl(authTokenModel.photoUrl());
         userRepo.save(dbUserEntity);
