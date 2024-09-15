@@ -2,8 +2,10 @@ package com.amalvadkar.ihms.auth.services;
 
 import com.amalvadkar.ihms.auth.helpers.JwtTokenHelper;
 import com.amalvadkar.ihms.auth.models.dto.JwtTokenCreateDto;
+import com.amalvadkar.ihms.auth.utils.AppConstants;
 import com.amalvadkar.ihms.common.entities.UserEntity;
 import com.amalvadkar.ihms.common.models.response.CustomResModel;
+import com.amalvadkar.ihms.common.repositories.TrainingVideoCategoryRepository;
 import com.amalvadkar.ihms.common.repositories.UserRepository;
 import com.amalvadkar.ihms.common.exceptions.AppException;
 import com.amalvadkar.ihms.auth.helpers.IdTokenHelper;
@@ -16,6 +18,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
+import java.util.HashMap;
 
 import static com.amalvadkar.ihms.auth.utils.AppConstants.ERROR_MSG_EMAIL_ID_MISSING_IN_SYSTEM;
 import static com.amalvadkar.ihms.auth.utils.AppConstants.LOGGED_IN_SUCCESSFULLY_RESPONSE_MSG;
@@ -33,6 +36,12 @@ public class AuthService {
     private final IdTokenHelper idTokenHelper;
     private final UserRepository userRepo;
     private final JwtTokenHelper jwtTokenHelper;
+    private final TrainingVideoCategoryRepository trainingVideoCategoryRepository;
+
+
+    private boolean emailPresentInSystem(UserEntity dbUserEntity) {
+        return nonNull(dbUserEntity);
+    }
 
     @Transactional
     public ResponseEntity<CustomResModel> signIn(String authProvider, String token, String device) {
@@ -40,7 +49,10 @@ public class AuthService {
         UserEntity dbUserEntity = userRepo.
                 findByEmailAndDeleteFlagIsFalseAndActiveIsTrue(authTokenModel.email());
         if (emailPresentInSystem(dbUserEntity)){
+            HashMap<String, Object> metaData = new HashMap<>();
+            metaData.put(AppConstants.TRAINING_VIDEO_DROPDOWN_OPTIONS,trainingVideoCategoryRepository.findAllVideoCategories());
             SignInResModel signInResModel = prepareSignInResModel(dbUserEntity, authTokenModel);
+            signInResModel.setMetaData(metaData);
             CustomResModel customResModel = CustomResModel.success(signInResModel, LOGGED_IN_SUCCESSFULLY_RESPONSE_MSG);
             JwtTokenCreateDto jwtTokenCreateDto = new JwtTokenCreateDto(dbUserEntity.getId(), dbUserEntity.getRoleEntity().getId(), device);
             return ResponseEntity.ok()
@@ -49,10 +61,6 @@ public class AuthService {
         } else {
             throw AppException.from(ERROR_MSG_EMAIL_ID_MISSING_IN_SYSTEM, UNAUTHORIZED);
         }
-    }
-
-    private boolean emailPresentInSystem(UserEntity dbUserEntity) {
-        return nonNull(dbUserEntity);
     }
 
     private SignInResModel prepareSignInResModel(UserEntity dbUserEntity, AuthTokenModel authTokenModel) {
